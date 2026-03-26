@@ -11,7 +11,9 @@ const app = express();
 const pool = require('./config/db');
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: 'task-manager-frontend-theta-seven.vercel.app'
+}));
 
 app.use('/api/v1/tasks', taskRouter);
 
