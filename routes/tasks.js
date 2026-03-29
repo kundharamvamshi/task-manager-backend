@@ -16,7 +16,7 @@ router.post('/', authenticateToken, async (req, res) => {
         );
         res.status(201).json(newTask.rows[0]);
     } catch (error) {
-        console.error(error);
+        console.log(error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -27,12 +27,13 @@ router.get('/',authenticateToken,async (req,res)=>{
         if (req.user.role==='admin') {
             const tasks=await pool.query(`SELECT * FROM tasks`);
             return res.status(200).json(tasks.rows)
-        } if (req.user.role==='user') {
+        } else{
             const tasks=await pool.query('SELECT * FROM tasks WHERE user_id=$1',[req.user.userId]);
             return res.status(200).json(tasks.rows)
         }
     }
     catch (err){
+        console.log(err)
         res.status(500).json({error:'Internal server error'});
     }
 });
@@ -59,6 +60,7 @@ router.put('/:id',authenticateToken, async (req,res)=>{
         res.status(200).json(updatedTask.rows[0]);
     }
     catch (error) {
+        console.log(error)
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -81,7 +83,7 @@ router.delete('/:id',authenticateToken,async (req,res)=>{
         res.status(200).json({message:'Task deleted successfully'});
     }
     catch (error) {
-        console.error(error);
+        console.log(error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

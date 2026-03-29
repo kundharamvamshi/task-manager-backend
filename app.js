@@ -17,7 +17,7 @@ const pool = require('./config/db');
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(cors({
-    origin: 'https://task-manager-frontend-theta-seven.vercel.app'
+    origin:'https://task-manager-frontend-theta-seven.vercel.app/'
 }));
 
 const limiter = rateLimit({
@@ -39,7 +39,7 @@ app.post('/api/v1/register', async (req, res) => {
     }
 
     const hasedPassword=await bcrypt.hash(password,10)
-    const newUserQuery =await pool.query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *`, [username, email, hasedPassword]);
+    await pool.query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *`, [username, email, hasedPassword]);
 
     res.status(201).json('User created successfully');
 });
