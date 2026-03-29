@@ -25,10 +25,9 @@ router.post('/', authenticateToken, async (req, res) => {
       [title, description, userId]
     );
 
-    return res.status(201).json({
-      message: 'Task Added Successfully',
-      task: newTask.rows[0]
-    });
+    return res.status(201).json(
+      newTask.rows[0]
+    );
 
   } catch (error) {
     console.log("DB ERROR:", error.message);
@@ -87,14 +86,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
 
     
-    await pool.query(
-      'UPDATE tasks SET title=$1, description=$2 WHERE id=$3',
+    const updatedTasks=await pool.query(
+      'UPDATE tasks SET title=$1, description=$2 WHERE id=$3 RETURNING *',
       [title, description, id]
     );
 
-    return res.status(200).json({
-      message: 'Updated Successfully'
-    });
+    return res.status(200).json(
+        updatedTasks.rows[0]
+    );
 
   } catch (error) {
     console.log("DB ERROR:", error.message);
