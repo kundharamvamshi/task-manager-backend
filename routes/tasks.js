@@ -50,7 +50,7 @@ router.put('/:id',authenticateToken, async (req,res)=>{
         if (task.rows.length===0){
             return res.status(404).json({error:'Task not found'});
         }
-        if (task.rows[0].user_id!==req.user.userId){
+        if (task.rows[0].user_id!==req.user.userId ){
             return res.status(403).json({error:'Access denied'});
         }
 
@@ -60,12 +60,13 @@ router.put('/:id',authenticateToken, async (req,res)=>{
         if (!nextTitle) {
             return res.status(400).json({error:'Task title is required'});
         }
-
-        const updatedTask=await pool.query(
-            `UPDATE tasks SET title=$1, description=$2 WHERE id=$3 RETURNING *`,
-            [nextTitle,nextDescription,id]
-        );
-        res.status(200).json(updatedTask.rows[0]);
+        if(task.rows[0].userId===req.user.userId || req.user.role==='admin'){
+                const updatedTask=await pool.query(
+                `UPDATE tasks SET title=$1, description=$2 WHERE id=$3 RETURNING *`,
+                [nextTitle,nextDescription,id]
+            );
+            res.status(200).json(updatedTask.rows[0]);
+        }
     }
     catch (error) {
         console.log(error)
@@ -87,8 +88,10 @@ router.delete('/:id',authenticateToken,async (req,res)=>{
             return res.status(403).json({error:'Access denied'});
         }
 
-        await pool.query(`DELETE FROM tasks WHERE id=$1`,[id]);
-        res.status(200).json({message:'Task deleted successfully'});
+        if (task.rows[0].user_id===req.user.userId || req.user.role==='admin'){
+            await pool.query(`DELETE FROM tasks WHERE id=$1`,[id]);
+            res.status(200).json({message:'Task deleted successfully'});
+        }
     }
     catch (error) {
         console.log(error);
