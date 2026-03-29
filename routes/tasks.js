@@ -24,14 +24,13 @@ router.post('/', authenticateToken, async (req, res) => {
 
 router.get('/',authenticateToken,async (req,res)=>{
     try {
-        let tasks;
-
         if (req.user.role==='admin') {
-            tasks=await pool.query(`SELECT * FROM tasks`);
-        } else if (req.user.role==='user') {
-            tasks=await pool.query('SELECT * FROM tasks WHERE user_id=$1',[req.user.userId]);
+            const tasks=await pool.query(`SELECT * FROM tasks`);
+            return res.status(200).json(tasks.rows)
+        } if (req.user.role==='user') {
+            const tasks=await pool.query('SELECT * FROM tasks WHERE user_id=$1',[req.user.userId]);
+            return res.status(200).json(tasks.rows)
         }
-        res.status(200).json(tasks.rows);
     }
     catch (err){
         res.status(500).json({error:'Internal server error'});
