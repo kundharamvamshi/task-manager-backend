@@ -11,10 +11,13 @@ router.post('/', authenticateToken, async (req, res) => {
     const { title, description } = req.body;
     const userId = req.user.userId;
     try {
-        const newTask = await pool.query(
+        if (title===undefined || description===undefined){
+            return res.status(400).json({message:'Title or description cannot be empty'})
+        }
+        await pool.query(
             `INSERT INTO tasks (title, description, user_id) VALUES ($1, $2, $3) RETURNING *`,[title, description, userId]
         );
-        res.status(201).json(newTask.rows[0]);
+        res.status(200).json({message:'Task Added Successfully'});
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Internal server error' });
