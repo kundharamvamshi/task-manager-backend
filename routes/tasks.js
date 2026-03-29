@@ -45,6 +45,10 @@ router.put('/:id',authenticateToken, async (req,res)=>{
     try{
         const task=await pool.query(`SELECT * FROM tasks WHERE id=$1`,[id]);
 
+        if(title!==undefined || description!==undefined){
+            return res.status(403).json({error:'Title or description cannot be empty'})
+        }
+
         if (task.rows.length===0){
             return res.status(404).json({error:'Task not found'});
         }
