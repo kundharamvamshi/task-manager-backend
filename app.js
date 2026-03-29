@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
+
+
+const morgan=require('morgan')
 require('dotenv').config();
 
 const taskRouter=require('./routes/tasks');
@@ -11,9 +15,17 @@ const app = express();
 const pool = require('./config/db');
 
 app.use(express.json());
+app.use(morgan('dev'));
 app.use(cors({
     origin: 'https://task-manager-frontend-theta-seven.vercel.app'
 }));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+});
+
+app.use(limiter);
 
 app.use('/api/v1/tasks', taskRouter);
 
@@ -41,9 +53,6 @@ app.post('/api/v1/login', async (req,res)=>{
     if(user.rows.length===0){
         return res.status(400).json({error:'Email does not exist'});
     }
-
-      
-    
         const validPassword=await bcrypt.compare(password,user.rows[0].password);
         if(!validPassword){
             return res.status(400).json({error:'Invalid email or password'});
