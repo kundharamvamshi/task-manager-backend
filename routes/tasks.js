@@ -8,22 +8,36 @@ const authenticateToken=require('../middleware/auth');
 const router=express.Router();
 
 router.post('/', authenticateToken, async (req, res) => {
-    const { title, description } = req.body;
-    const userId = req.user.userId;
-    try {
-        if (title===undefined || description===undefined){
-            return res.status(400).json({message:'Title or description cannot be empty'})
-        }
-        await pool.query(
-            `INSERT INTO tasks (title, description, user_id) VALUES ($1, $2, $3) RETURNING *`,[title, description, userId]
-        );
-        res.status(200).json({message:'Task Added Successfully'});
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
+  const { title, description } = req.body;
+  const userId = req.user.userId;
 
+  try {
+    if (!title || !description) {
+      return res.status(400).json({
+        message: 'Title and description are required'
+      });
+    }
+
+    const newTask = await pool.query(
+      `INSERT INTO tasks (title, description, user_id)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [title, description, userId]
+    );
+
+    return res.status(201).json({
+      message: 'Task Added Successfully',
+      task: newTask.rows[0]
+    });
+
+  } catch (error) {
+    console.log("DB ERROR:", error.message);
+
+    return res.status(500).json({
+      error: error.message
+    });
+  }
+});
 
 router.get('/',authenticateToken,async (req,res)=>{
     try {
