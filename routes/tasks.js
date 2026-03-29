@@ -97,9 +97,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error: 'Internal server error'
+    console.log("DB ERROR:", error.message);
+
+    return res.status(500).json({
+      error: error.message
     });
   }
 });
@@ -139,9 +140,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.log(error);
+    console.log("DB ERROR:", error.message);
+
     return res.status(500).json({
-      error: 'Internal server error'
+      error: error.message
     });
   }
 });
