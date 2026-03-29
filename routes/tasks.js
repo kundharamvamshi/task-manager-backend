@@ -24,6 +24,10 @@ router.post('/', authenticateToken, async (req, res) => {
 
 router.get('/',authenticateToken,async (req,res)=>{
     try {
+        if (req.user.role==='admin'){
+            const allTasks=await pool.query('SELECT * FROM tasks');
+            return res.status(200).json(allTasks.rows) 
+        }
         const tasks=await pool.query(
             'SELECT * FROM tasks WHERE user_id=$1 ORDER BY id DESC',
             [req.user.userId]
