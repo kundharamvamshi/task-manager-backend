@@ -50,22 +50,15 @@ router.put('/:id',authenticateToken, async (req,res)=>{
         if (task.rows.length===0){
             return res.status(404).json({error:'Task not found'});
         }
-        if (task.rows[0].user_id!==req.user.userId ){
-            return res.status(403).json({error:'Access denied'});
+        if (title===undefined || description===undefined){
+            return res.status(403).json({error:'Title or Description cannot be empty'})
         }
-
-        const nextTitle = title !== undefined ? title.trim() : task.rows[0].title;
-        const nextDescription = description !== undefined ? description.trim() : task.rows[0].description;
-
-        if (!nextTitle) {
-            return res.status(400).json({error:'Task title is required'});
+        if (req.user.role==='admin' || req.user.userId===task.rows[0].user_id){
+            await pool.query('UPDATE tasks SET title=$1 AND description=$1 WHERE id=$3',[title,description,id])
+            return res.status(200).json({message:'Updated Successfully'})
         }
-        if(task.rows[0].userId===req.user.userId || req.user.role==='admin'){
-                const updatedTask=await pool.query(
-                `UPDATE tasks SET title=$1, description=$2 WHERE id=$3 RETURNING *`,
-                [nextTitle,nextDescription,id]
-            );
-            res.status(200).json(updatedTask.rows[0]);
+        if (req.user.userId!==task.rows[0].user_id){
+            return res.status(403).json({message:'Access Denied'})
         }
     }
     catch (error) {
@@ -84,14 +77,15 @@ router.delete('/:id',authenticateToken,async (req,res)=>{
             return res.status(404).json({error:'Task not found'});
         }
 
-        if (task.rows[0].user_id!==req.user.userId){
-            return res.status(403).json({error:'Access denied'});
-        }
-
         if (task.rows[0].user_id===req.user.userId || req.user.role==='admin'){
             await pool.query(`DELETE FROM tasks WHERE id=$1`,[id]);
             res.status(200).json({message:'Task deleted successfully'});
         }
+
+        if (task.rows[0].user_id!==req.user.userId){
+            return res.status(403).json({error:'Access denied'});
+        }
+
     }
     catch (error) {
         console.log(error);
