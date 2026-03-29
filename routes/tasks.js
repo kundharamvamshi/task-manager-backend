@@ -24,13 +24,11 @@ router.post('/', authenticateToken, async (req, res) => {
 
 router.get('/',authenticateToken,async (req,res)=>{
     try {
-        if (req.user.role==='admin') {
-            const tasks=await pool.query(`SELECT * FROM tasks`);
-            return res.status(200).json(tasks.rows)
-        } else{
-            const tasks=await pool.query('SELECT * FROM tasks WHERE user_id=$1',[req.user.userId]);
-            return res.status(200).json(tasks.rows)
-        }
+        const tasks=await pool.query(
+            'SELECT * FROM tasks WHERE user_id=$1 ORDER BY id DESC',
+            [req.user.userId]
+        );
+        return res.status(200).json(tasks.rows)
     }
     catch (err){
         console.log(err)
@@ -45,18 +43,24 @@ router.put('/:id',authenticateToken, async (req,res)=>{
     try{
         const task=await pool.query(`SELECT * FROM tasks WHERE id=$1`,[id]);
 
-        if(title!==undefined || description!==undefined){
-            return res.status(403).json({error:'Title or description cannot be empty'})
-        }
-
         if (task.rows.length===0){
             return res.status(404).json({error:'Task not found'});
         }
-        if (task.rows[0].user_id!==req.user.userId && req.user.role!=='admin'){
+        if (task.rows[0].user_id!==req.user.userId){
             return res.status(403).json({error:'Access denied'});
         }
 
-        const updatedTask=await pool.query(`UPDATE tasks SET title=$1, description=$2 WHERE id=$3 RETURNING *`,[title,description,id]);
+        const nextTitle = title !== undefined ? title.trim() : task.rows[0].title;
+        const nextDescription = description !== undefined ? description.trim() : task.rows[0].description;
+
+        if (!nextTitle) {
+            return res.status(400).json({error:'Task title is required'});
+        }
+
+        const updatedTask=await pool.query(
+            `UPDATE tasks SET title=$1, description=$2 WHERE id=$3 RETURNING *`,
+            [nextTitle,nextDescription,id]
+        );
         res.status(200).json(updatedTask.rows[0]);
     }
     catch (error) {
@@ -75,7 +79,7 @@ router.delete('/:id',authenticateToken,async (req,res)=>{
             return res.status(404).json({error:'Task not found'});
         }
 
-        if (task.rows[0].user_id!==req.user.userId && req.user.role!=='admin'){
+        if (task.rows[0].user_id!==req.user.userId){
             return res.status(403).json({error:'Access denied'});
         }
 

@@ -16,8 +16,24 @@ const pool = require('./config/db');
 
 app.use(express.json());
 app.use(morgan('dev'));
+
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://task-manager-frontend-theta-seven.vercel.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+].filter(Boolean);
+
 app.use(cors({
-    origin:'https://task-manager-frontend-theta-seven.vercel.app/'
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 const limiter = rateLimit({
@@ -32,23 +48,36 @@ app.use('/api/v1/tasks', taskRouter);
 app.post('/api/v1/register', async (req, res) => {
     const { username, email, password } = req.body;
 
-    const isuserExists=await pool.query(`SELECT * FROM users WHERE email = $1`, [email]); 
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedUsername = username.trim();
+
+    const isuserExists=await pool.query(`SELECT * FROM users WHERE email = $1`, [normalizedEmail]); 
 
     if (isuserExists.rows.length > 0) {
         return res.status(400).json({ error: 'User already exists' });
     }
 
     const hasedPassword=await bcrypt.hash(password,10)
-    await pool.query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *`, [username, email, hasedPassword]);
+    await pool.query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *`, [trimmedUsername, normalizedEmail, hasedPassword]);
 
-    res.status(201).json('User created successfully');
+    res.status(201).json({ message: 'User created successfully' });
 });
 
 
 app.post('/api/v1/login', async (req,res)=>{
     try{
     const {email,password}=req.body;
-    const user=await pool.query(`SELECT * FROM users WHERE email = $1`, [email]);
+
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user=await pool.query(`SELECT * FROM users WHERE email = $1`, [normalizedEmail]);
 
     if(user.rows.length===0){
         return res.status(400).json({error:'Email does not exist'});
@@ -58,11 +87,12 @@ app.post('/api/v1/login', async (req,res)=>{
             return res.status(400).json({error:'Invalid email or password'});
         }
 
-        const token=jwt.sign({userId:user.rows[0].id, role:user.rows[0].role},process.env.JWT_SECRET,{expiresIn:'12h'});
+        const token=jwt.sign({userId:user.rows[0].id, role:user.rows[0].role || 'user'},process.env.JWT_SECRET,{expiresIn:'12h'});
         res.status(200).json({message:'Login successful', token});
     
 }
 catch (error){
+    console.log(error);
     res.status(500).json({error:'Internal server error'});
 }
 });
