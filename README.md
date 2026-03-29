@@ -144,8 +144,3 @@ https://vamshi07012003-8137647.postman.co/workspace/926e3bb1-6ece-4ff6-8004-aea7
 * Rate limiting for API protection
 
 ---
-
-## Admin Credentials
-
-* email:admin@gmail.com
-* password:admin@123
