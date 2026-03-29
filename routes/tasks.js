@@ -40,57 +40,93 @@ router.get('/',authenticateToken,async (req,res)=>{
     }
 });
 
-router.put('/:id',authenticateToken, async (req,res)=>{
-    const {id}=req.params;
-    const {title,description}=req.body;
+router.put('/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { title, description } = req.body;
 
-    try{
-        const task=await pool.query(`SELECT * FROM tasks WHERE id=$1`,[id]);
+  try {
+    const task = await pool.query(
+      'SELECT * FROM tasks WHERE id=$1',
+      [id]
+    );
 
-        if (task.rows.length===0){
-            return res.status(404).json({error:'Task not found'});
-        }
-        if (title===undefined || description===undefined){
-            return res.status(403).json({error:'Title or Description cannot be empty'})
-        }
-        if (req.user.role==='admin' || req.user.userId===task.rows[0].user_id){
-            await pool.query('UPDATE tasks SET title=$1 AND description=$1 WHERE id=$3',[title,description,id])
-            return res.status(200).json({message:'Updated Successfully'})
-        }
-        if (req.user.userId!==task.rows[0].user_id){
-            return res.status(403).json({message:'Access Denied'})
-        }
+    if (task.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
     }
-    catch (error) {
-        console.log(error)
-        res.status(500).json({ error: 'Internal server error' });
+
+   
+    if (!title || !description) {
+      return res.status(400).json({
+        error: 'Title and Description are required'
+      });
     }
+
+    
+    if (
+      req.user.role !== 'admin' &&
+      req.user.userId !== task.rows[0].user_id
+    ) {
+      return res.status(403).json({ message: 'Access Denied' });
+    }
+
+    
+    await pool.query(
+      'UPDATE tasks SET title=$1, description=$2 WHERE id=$3',
+      [title, description, id]
+    );
+
+    return res.status(200).json({
+      message: 'Updated Successfully'
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
 });
 
 
-router.delete('/:id',authenticateToken,async (req,res)=>{
-    const {id}=req.params;
-    try{
-        const task=await pool.query(`SELECT * FROM tasks WHERE id=$1`,[id]);
+router.delete('/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
 
-        if (task.rows.length===0){
-            return res.status(404).json({error:'Task not found'});
-        }
+  try {
+    const task = await pool.query(
+      'SELECT * FROM tasks WHERE id=$1',
+      [id]
+    );
 
-        if (task.rows[0].user_id===req.user.userId || req.user.role==='admin'){
-            await pool.query(`DELETE FROM tasks WHERE id=$1`,[id]);
-            res.status(200).json({message:'Task deleted successfully'});
-        }
-
-        if (task.rows[0].user_id!==req.user.userId){
-            return res.status(403).json({error:'Access denied'});
-        }
-
+    if (task.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Task not found'
+      });
     }
-    catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Internal server error' });
+
+    if (
+      req.user.role !== 'admin' &&
+      req.user.userId !== task.rows[0].user_id
+    ) {
+      return res.status(403).json({
+        error: 'Access denied'
+      });
     }
+
+    await pool.query(
+      'DELETE FROM tasks WHERE id=$1',
+      [id]
+    );
+
+    return res.status(200).json({
+      message: 'Task deleted successfully'
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
 });
 
 module.exports = router;
